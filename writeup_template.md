@@ -104,9 +104,87 @@ Then I did some other stuff and fit my lane lines with a 2nd order polynomial ki
 
 I did this in lines # through # in my code in `my_other_file.py`
 
+```python
+def get3pointRadius(x1,y1,x2,y2,x3,y3):
+    m1 = (y2-y1)/(x2-x1)
+    m2 = (y3-y2)/(x3-x2)
+    xc = (m1*m2*(y1-y3)+m2*(x1+x2)-m1*(x2+x3))/(2*(m2-m1))
+    yc = -(xc-(x1+x2)/2)/m1 +(y1+y2)/2      
+
+    radius = np.sqrt((x2-xc)**2+(y2-yc)**2)
+
+    return radius
+
+def calcRadiusCurv(left, left_fit, right_fit):
+    ym_per_pix = 30/720 # meters per pixel in y dimension
+    xm_per_pix = 3.7/700 # meters per pixel in x dimension
+
+    left_fit_cr = np.polyfit(left[:,0]*ym_per_pix, left[:,1]*xm_per_pix, 2)
+    right_fit_cr = np.polyfit(right[:,0]*ym_per_pix, right[:,1]*xm_per_pix, 2)    
+
+    y_min = np.min(left[:,0]*ym_per_pix) # min y
+    y_mean = np.mean(left[:,0]*ym_per_pix) # mean y
+    y_max = np.max(left[:,0]*ym_per_pix) # max y
+
+    leftx_min = np.polyval(left_fit_cr,y_min)
+    leftx_mean = np.polyval(left_fit_cr,y_mean)
+    leftx_max = np.polyval(left_fit_cr,y_max)
+    rightx_min = np.polyval(right_fit_cr,y_min)
+    rightx_mean = np.polyval(right_fit_cr,y_mean)
+    rightx_max = np.polyval(right_fit_cr,y_max)
+
+    # calculate the curvature with 3 min, mean and max points of the image
+    left_curverad = get3pointRadius(leftx_min,y_min,leftx_mean,y_mean,leftx_max,y_max)
+    right_curverad = get3pointRadius(rightx_min,y_min,rightx_mean,y_mean,rightx_max,y_max)
+
+    return left_curverad, right_curverad
+
+```
+
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
 I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+
+``` python
+def drawPolygon(warp_image, image, undist, dst, src, leftx, rightx, left_curverad, right_curverad):
+    # Draw on Polygon back onto original image
+
+    # Create an image to draw the lines on
+    warp_zero = np.zeros_like(warp_image).astype(np.uint8)
+    color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+
+    # Recast the x and y points into usable format for cv2.fillPoly()
+    pts_left = np.array([np.transpose(np.vstack([left_fitx, left[:,0]]))])
+    pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, right[:,0]])))])
+    pts = np.hstack((pts_left, pts_right))
+
+    # Draw the lane onto the warped blank image
+    cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+
+    Mi = cv2.getPerspectiveTransform(dst, src)
+
+    left_mean = np.mean(leftx) # get avg of left lane pixels
+    right_mean = np.mean(rightx) # get avg of right lane pixels
+    vehicle_pos = (image.shape[1]/2)-np.mean([left_mean, right_mean]) # assume camera pos is center of image. vehicle pos w.r.t. vehicle lane
+    xm_per_pix = 3.7/700 # meters per pixel in x dimension
+
+    avg_curv = (left_curverad+right_curverad)/2    
+
+    # Warp the blank back to original image space using inverse perspective matrix (Minv)
+    newwarp = cv2.warpPerspective(color_warp, Mi, (image.shape[1], image.shape[0]))
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    fontscale = 1.2
+    fontColor = (255,255,255) # white
+    thickness = 4
+    cv2.putText(newwarp,'Vehicle Position' + ' is ' + str(vehicle_pos*xm_per_pix)[:5] + ' m Left of Center',(10,30), font, fontscale, fontColor,thickness)
+    cv2.putText(newwarp,'Radius of Curvature = ' +str(avg_curv)[:5] + ' m' ,(10,80), font, fontscale,fontColor,thickness)
+
+    # Combine the result with the original image
+    undist = cv2.undistort(image, mtx, dist, None, mtx) # undistort with camera calibration   
+    result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
+
+    return result
+```
 
 ![alt text][image6]
 
@@ -116,7 +194,7 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](../project_video_out.mp4)
+Here's a [link to my video result](./project_video_out.mp4)
 
 ---
 
