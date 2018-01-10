@@ -242,6 +242,8 @@ def fitpolypixels(l_points, r_points):
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
+In order to calculate the radius curvature of the lane, I calculated the radius using 3 points of each lane. I picked the min, max and mean y points along each line and implemented the formula from the following reference (https://www.intmath.com/applications-differentiation/8-radius-curvature.php). In order to scale the values to real world values, I converted the pixels to meters and did a poly fit on the scaled meter values in order to get the 3 points in real world values. Then, I computed the radius of curvature for both lane lines. This can be seen in the code cells 11 and 12.
+
 ```python
 def get3pointRadius(x1,y1,x2,y2,x3,y3):
     m1 = (y2-y1)/(x2-x1)
@@ -278,10 +280,11 @@ def calcRadiusCurv(left, left_fit, right_fit):
     return left_curverad, right_curverad
 
 ```
+I computed the vehicle's position with respect to the center of the lane line by assuming the center of the camera was on the middle of the vehicle. With the assumption, you can subtract the middle of the two lanes from the middle of the image to get the relative position in pixels. You then convert that into meters to get the final result.
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in the function `drawPolygon()`.  
+For the final step, I took the lane lines that were fitted and drew the polygon onto the undistorted image in function `drawPolygon()`. I added the text to identify the average radius of curvature between the two lane lines and the vehicle's relative position from the center of the lanes. This can be seen in code cell 13.    
 
 ``` python
 def drawPolygon(warp_image, image, undist, dst, src, leftx, rightx, left_curverad, right_curverad):
@@ -340,5 +343,3 @@ Here's a [link to my video result](./project_video_out.mp4)
 ### Discussion
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
-
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
