@@ -343,3 +343,5 @@ Here's a [link to my video result](./project_video_out.mp4)
 ### Discussion
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+
+Some of the issues that I was having is getting the look ahead filter to work as intended. The current implementation does the full convolution search on each image rather than a local search. I wrote the Line class with the intended functions, but wasn't able to successfully debug the average fit calculation. The performance was still acceptable, but the computing power required to search for the lane lines each time is overused. The pipeline could fail if the lane lines change drastically in position (narrower or wider all of a sudden) where the perspective transform would no longer capture the correct source points. If there was a lower weight algorithm with high enough confidence to dynamically calculate the source points, this would provide more robustness to the pipeline. 
